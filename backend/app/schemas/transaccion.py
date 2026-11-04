@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 
 class TransaccionItemBase(BaseModel):
@@ -50,8 +50,12 @@ class TransaccionBase(BaseModel):
 
 
 class TransaccionCreate(BaseModel):
-    """Entrada de POST /api/ventas: cédula + ítems."""
-    identificacion: str = Field(..., min_length=3, max_length=50)
+    """Entrada de POST /api/ventas desde el checkout del carrito."""
+    identificacion: str = Field(..., min_length=3, max_length=50, description="Cédula o NIT")
+    email: Optional[EmailStr] = Field(None, description="Correo donde llegará la factura de la DIAN")
+    nombres: Optional[str] = Field(None, max_length=100)
+    apellidos: Optional[str] = Field(None, max_length=100)
+    telefono: Optional[str] = Field(None, max_length=30)
     items: List[TransaccionItemCreate] = Field(..., min_length=1)
     observacion: Optional[str] = None
 

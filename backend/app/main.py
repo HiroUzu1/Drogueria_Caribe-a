@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import clientes as clientes_router
 from app.api import productos as productos_router
 from app.api import recaudos as recaudos_router
+from app.api import ventas as ventas_router
 from app.api.deps import get_db
 from app.core.config import settings
 from app.db.base import Base
@@ -56,6 +57,7 @@ app.add_middleware(
 app.include_router(clientes_router.router)
 app.include_router(productos_router.router)
 app.include_router(recaudos_router.router)
+app.include_router(ventas_router.router)
 
 
 @app.get("/health", tags=["health"])
