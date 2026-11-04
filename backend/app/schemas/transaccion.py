@@ -75,6 +75,11 @@ class TransaccionOut(BaseModel):
     updated_at: datetime
     completed_at: Optional[datetime]
     items: List[TransaccionItemOut] = []
+    # Datos de la factura (propiedades de Transaccion; requieren cargar la relación `venta`)
+    factura_numero: Optional[str] = None
+    cufe: Optional[str] = None
+    factura_url: Optional[str] = None
+    factura_error: Optional[str] = None
 
 
 class VentaResponse(BaseModel):

@@ -385,6 +385,10 @@
                 }
                 catalog = {};
                 grid.innerHTML = productos.map(p => {
+                    // La API devuelve code_reference/name/price; la vista usa sku/nombre/precio_cop
+                    p.sku = p.code_reference;
+                    p.nombre = p.name;
+                    p.precio_cop = p.price;
                     catalog[p.sku] = p;
                     const agotado = p.stock <= 0;
                     return `
@@ -444,7 +448,15 @@
             if (existingItem) {
                 existingItem.quantity += 1;
             } else {
-                cart.push({ sku, name: p.nombre, price: Number(p.precio_cop), quantity: 1 });
+                cart.push({
+                    sku,
+                    id: p.id,
+                    name: p.nombre,
+                    price: Number(p.precio_cop),
+                    taxRate: Number(p.tax_rate) || 0,
+                    unitMeasureCode: p.unit_measure_code || '94',
+                    quantity: 1,
+                });
             }
             
             updateCartUI();
@@ -479,8 +491,10 @@
                 return;
             }
 
-            emptyState.style.display = 'none';
+            // Se vuelve a insertar el estado vacío (oculto): si se borra con innerHTML, el siguiente render no lo encuentra
             list.innerHTML = '';
+            list.appendChild(emptyState);
+            emptyState.style.display = 'none';
             let subtotal = 0;
 
             cart.forEach((item, index) => {
@@ -581,20 +595,41 @@
             btn.disabled = true;
 
             try {
+                // IVA por línea con 2 decimales, igual que lo calcula el backend
+                const items = cart.map(i => {
+                    const taxAmount = Math.round(i.price * i.quantity * i.taxRate) / 100;
+                    return {
+                        producto_id: i.id,
+                        code_reference: i.sku,
+                        name: i.name,
+                        quantity: i.quantity,
+                        price: i.price,
+                        tax_amount: taxAmount,
+                        unit_measure_code: i.unitMeasureCode,
+                        standard_code: '999',
+                        taxes: JSON.stringify(i.taxRate > 0
+                            ? [{ code: '01', rate: i.taxRate.toFixed(2) }]
+                            : [{ is_excluded: true }]),
+                    };
+                });
+                const total = items.reduce((sum, i) => sum + i.price * i.quantity + i.tax_amount, 0);
+                const [nombres, ...resto] = nombre.split(' ');
                 const venta = await apiFetch('/api/ventas', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        nit,
-                        razon_social: nombre,
+                        identificacion: nit,
+                        nombres,
+                        apellidos: resto.join(' ') || null,
                         email,
-                        items: cart.map(i => ({ sku: i.sku, cantidad: i.quantity })),
+                        items,
                     }),
                 });
-                currentVentaId = venta.id;
+                // El estado se consulta por reference_code (/api/ventas/{reference_code}/poll)
+                currentVentaId = venta.reference_code;
                 document.getElementById('qr-img').src = venta.qr_code || '';
                 document.getElementById('pay-ref').innerText = venta.reference_code;
-                document.getElementById('pay-total').innerText = formatCurrency(venta.total);
+                document.getElementById('pay-total').innerText = formatCurrency(total);
                 showStep(2);
                 startPolling();
             } catch (e) {
@@ -627,7 +662,7 @@
                     return;
                 }
                 try {
-                    const v = await apiFetch(`/api/ventas/${ventaId}`);
+                    const v = await apiFetch(`/api/ventas/${encodeURIComponent(ventaId)}/poll`);
                     handleEstado(v);
                 } catch (e) { /* reintenta en el siguiente ciclo */ }
             }, 3000);

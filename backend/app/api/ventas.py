@@ -226,7 +226,7 @@ async def _intentar_confirmar_pago(db: AsyncSession, reference_code: str) -> Non
         return
 
     result_tx = await db.execute(
-        select(Transaccion).options(selectinload(Transaccion.items)).where(Transaccion.reference_code == reference_code)
+        select(Transaccion).options(selectinload(Transaccion.items), selectinload(Transaccion.venta)).where(Transaccion.reference_code == reference_code)
     )
     transaccion: Optional[Transaccion] = result_tx.scalar_one_or_none()
     if transaccion is None:
@@ -253,7 +253,7 @@ async def consultar_estado_venta(
         await _intentar_confirmar_pago(db, reference_code)
 
     result = await db.execute(
-        select(Transaccion).options(selectinload(Transaccion.items)).where(Transaccion.reference_code == reference_code)
+        select(Transaccion).options(selectinload(Transaccion.items), selectinload(Transaccion.venta)).where(Transaccion.reference_code == reference_code)
     )
     transaccion: Optional[Transaccion] = result.scalar_one_or_none()
     if transaccion is None:
@@ -276,7 +276,7 @@ async def poll_venta(
     await _intentar_confirmar_pago(db, reference_code)
 
     result = await db.execute(
-        select(Transaccion).options(selectinload(Transaccion.items)).where(Transaccion.reference_code == reference_code)
+        select(Transaccion).options(selectinload(Transaccion.items), selectinload(Transaccion.venta)).where(Transaccion.reference_code == reference_code)
     )
     transaccion: Optional[Transaccion] = result.scalar_one_or_none()
     if transaccion is None:

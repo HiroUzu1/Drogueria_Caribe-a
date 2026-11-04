@@ -7,8 +7,11 @@ Rutas:
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from app.api import clientes as clientes_router
 from app.api import productos as productos_router
@@ -72,6 +75,12 @@ app.add_api_route(
 @app.get("/health", tags=["health"])
 async def health():
     return {"status": "ok", "env": settings.app_env}
+
+
+@app.get("/tienda", include_in_schema=False)
+async def tienda():
+    """Tienda web (carrito, cobro con QR de Factus Pay y factura), en el mismo dominio que la API."""
+    return FileResponse(Path(__file__).parent / "static" / "tienda.html")
 
 
 @app.get("/", tags=["root"])
