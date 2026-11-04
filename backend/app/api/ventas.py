@@ -82,7 +82,11 @@ async def actualizar_producto(sku: str, payload: ProductoUpdate, db: AsyncSessio
 
 # -------------------------------------------------------------------- Ventas
 async def _cargar_transaccion(db: AsyncSession, **filtro) -> Transaccion | None:
-    stmt = select(Transaccion).options(selectinload(Transaccion.items))
+    stmt = (
+        select(Transaccion)
+        .options(selectinload(Transaccion.items), selectinload(Transaccion.venta))
+        .execution_options(populate_existing=True)
+    )
     for campo, valor in filtro.items():
         stmt = stmt.where(getattr(Transaccion, campo) == valor)
     return await db.scalar(stmt)

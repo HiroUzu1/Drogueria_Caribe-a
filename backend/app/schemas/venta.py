@@ -102,6 +102,10 @@ class TransaccionPagoOut(BaseModel):
     qr_expires_at: Optional[str]
     created_at: datetime
     pagado_en: Optional[datetime]
+    factura_numero: Optional[str] = None
+    cufe: Optional[str] = None
+    factura_url: Optional[str] = None
+    factura_error: Optional[str] = None
     items: List[VentaItemOut]
 
 
