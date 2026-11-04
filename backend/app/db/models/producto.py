@@ -33,6 +33,9 @@ class Producto(Base):
     nombre: Mapped[str] = mapped_column(String(200), nullable=False)
     precio_cop: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     stock: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # precio_cop es neto (sin IVA); los medicamentos suelen ser IVA excluido
+    iva_excluido: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    iva_rate: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, default=Decimal("19.00"))
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

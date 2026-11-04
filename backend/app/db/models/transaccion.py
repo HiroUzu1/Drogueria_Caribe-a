@@ -71,6 +71,23 @@ class Transaccion(Base):
         back_populates="transaccion", uselist=False
     )
 
+    # Requieren la relación `venta` cargada (selectinload).
+    @property
+    def factura_numero(self) -> Optional[str]:
+        return self.venta.factura_numero if self.venta else None
+
+    @property
+    def cufe(self) -> Optional[str]:
+        return self.venta.cufe if self.venta else None
+
+    @property
+    def factura_url(self) -> Optional[str]:
+        return self.venta.factura_url if self.venta else None
+
+    @property
+    def factura_error(self) -> Optional[str]:
+        return self.venta.factura_error if self.venta else None
+
     def __repr__(self) -> str:  # pragma: no cover
         return (
             f"<Transaccion(id={self.id}, reference_code={self.reference_code}, "

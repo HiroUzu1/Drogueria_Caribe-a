@@ -40,5 +40,9 @@ class Venta(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    factura_numero: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    cufe: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    factura_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    factura_error: Mapped[str | None] = mapped_column(String(1000), nullable=True)
 
     transaccion: Mapped["Transaccion"] = relationship(back_populates="venta")

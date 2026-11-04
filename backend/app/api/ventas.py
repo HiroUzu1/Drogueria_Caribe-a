@@ -6,7 +6,7 @@ from decimal import Decimal
 from uuid import UUID
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +25,7 @@ from app.schemas.venta import (
     VentaCreate,
 )
 from app.services.factus_pay import FactusPayClient, FactusPayError
+from app.services.facturacion import emitir_factura, impuestos_linea
 from app.services.nit import parse_nit
 from app.services.ventas import confirmar_pago
 
@@ -81,7 +82,11 @@ async def actualizar_producto(sku: str, payload: ProductoUpdate, db: AsyncSessio
 
 # -------------------------------------------------------------------- Ventas
 async def _cargar_transaccion(db: AsyncSession, **filtro) -> Transaccion | None:
-    stmt = select(Transaccion).options(selectinload(Transaccion.items))
+    stmt = (
+        select(Transaccion)
+        .options(selectinload(Transaccion.items), selectinload(Transaccion.venta))
+        .execution_options(populate_existing=True)
+    )
     for campo, valor in filtro.items():
         stmt = stmt.where(getattr(Transaccion, campo) == valor)
     return await db.scalar(stmt)
@@ -93,7 +98,9 @@ async def _cargar_transaccion(db: AsyncSession, **filtro) -> Transaccion | None:
     status_code=status.HTTP_201_CREATED,
     tags=["ventas"],
 )
-async def crear_venta(payload: VentaCreate, db: AsyncSession = Depends(get_db)):
+async def crear_venta(
+    payload: VentaCreate, background: BackgroundTasks, db: AsyncSession = Depends(get_db)
+):
     """Crea la venta PENDIENTE_PAGO y el QR. No toca el stock hasta confirmar el pago."""
     skus = [i.sku for i in payload.items]
     productos = {
@@ -108,9 +115,18 @@ async def crear_venta(payload: VentaCreate, db: AsyncSession = Depends(get_db)):
         if productos[linea.sku].stock < linea.cantidad:
             raise HTTPException(409, f"Stock insuficiente para el SKU {linea.sku}.")
 
-    total = sum(
-        (productos[i.sku].precio_cop * i.cantidad for i in payload.items), Decimal("0")
-    ).quantize(Decimal("0.01"))
+    lineas = []
+    subtotal = Decimal("0")
+    iva_total = Decimal("0")
+    for i in payload.items:
+        p = productos[i.sku]
+        iva, taxes_json = impuestos_linea(p.precio_cop, i.cantidad, p.iva_excluido, p.iva_rate)
+        base = p.precio_cop * i.cantidad
+        subtotal += base
+        iva_total += iva
+        lineas.append((i, p, base, iva, taxes_json))
+    subtotal = subtotal.quantize(Decimal("0.01"))
+    total = (subtotal + iva_total).quantize(Decimal("0.01"))
     if not MIN_COBRO <= total <= MAX_COBRO:
         raise HTTPException(422, f"El total debe estar entre {MIN_COBRO} y {MAX_COBRO} COP.")
 
@@ -128,21 +144,25 @@ async def crear_venta(payload: VentaCreate, db: AsyncSession = Depends(get_db)):
         reference_code=reference_code,
         cliente=cliente,
         estado="PENDIENTE_PAGO",
-        subtotal=total,
-        tax_amount=Decimal("0"),
+        subtotal=subtotal,
+        tax_amount=iva_total,
         total=total,
         observacion=payload.observacion,
         items=[
             TransaccionItem(
-                producto_id=productos[i.sku].id,
+                producto_id=p.id,
                 code_reference=i.sku,
-                name=productos[i.sku].nombre,
+                name=p.nombre,
                 quantity=i.cantidad,
-                price=productos[i.sku].precio_cop,
-                subtotal=productos[i.sku].precio_cop * i.cantidad,
-                total=productos[i.sku].precio_cop * i.cantidad,
+                price=p.precio_cop,
+                subtotal=base,
+                tax_amount=iva,
+                total=base + iva,
+                unit_measure_code="94",
+                standard_code="999",
+                taxes=taxes_json,
             )
-            for i in payload.items
+            for i, p, base, iva, taxes_json in lineas
         ],
     )
     db.add(tx)
@@ -167,16 +187,31 @@ async def crear_venta(payload: VentaCreate, db: AsyncSession = Depends(get_db)):
     tx.qr_code = data["qr"]
     tx.qr_expires_at = data.get("qr_expires_at")
     await db.commit()
-    if data["status"] == "paid":
-        await confirmar_pago(db, reference_code, total)
+    if data["status"] == "paid" and await confirmar_pago(db, reference_code, total) == "pagada":
+        background.add_task(emitir_factura, tx.id)
     return await _cargar_transaccion(db, reference_code=reference_code)
 
 
 @router.get("/api/ventas/{venta_id}", response_model=TransaccionPagoOut, tags=["ventas"])
-async def obtener_venta(venta_id: UUID, db: AsyncSession = Depends(get_db)):
+async def obtener_venta(
+    venta_id: UUID, background: BackgroundTasks, db: AsyncSession = Depends(get_db)
+):
     tx = await _cargar_transaccion(db, id=venta_id)
     if tx is None:
         raise HTTPException(status_code=404, detail="Venta no encontrada.")
+    if tx.estado == "PENDIENTE_PAGO" and settings.factus_pay_poll_enabled:
+        # Alternativa al webhook (que requiere URL pública): consulta el recaudo en Factus.
+        try:
+            data = await factus_pay.get_collection(tx.reference_code)
+            if data.get("status") == "paid":
+                resultado = await confirmar_pago(
+                    db, tx.reference_code, Decimal(str(data.get("amount")))
+                )
+                if resultado == "pagada":
+                    background.add_task(emitir_factura, tx.id)
+                tx = await _cargar_transaccion(db, id=venta_id)
+        except (FactusPayError, httpx.HTTPError, ArithmeticError):
+            pass  # el cliente volverá a consultar; no se rompe la lectura
     return tx
 
 
@@ -206,10 +241,26 @@ async def registro_de_ventas(
             nit=v.nit,
             total=v.total,
             created_at=v.created_at,
+            factura_numero=v.factura_numero,
+            cufe=v.cufe,
+            factura_url=v.factura_url,
+            factura_error=v.factura_error,
             items=v.transaccion.items,
         )
         for v in ventas.all()
     ]
+
+
+@router.post(
+    "/api/ventas/{venta_id}/retry-bill",
+    dependencies=[Depends(require_admin)],
+    tags=["ventas"],
+)
+async def reintentar_facturacion(venta_id: UUID):
+    estado = await emitir_factura(venta_id)
+    if estado == "not_found":
+        raise HTTPException(status_code=404, detail="Venta no encontrada.")
+    return {"venta_id": venta_id, "estado": estado}
 
 
 # ------------------------------------------------------------------- Webhook
@@ -217,6 +268,7 @@ async def registro_de_ventas(
 @router.post("/webhook/factus-pay", tags=["webhooks"])
 async def webhook_factus_pay(
     payload: FactusWebhook,
+    background: BackgroundTasks,
     key: str = Query(...),
     db: AsyncSession = Depends(get_db),
 ):
@@ -235,4 +287,8 @@ async def webhook_factus_pay(
         return {"received": True, "processed": False, "status": resultado}
     if resultado != "pagada":
         raise HTTPException(status_code=409, detail=f"No se pudo validar el pago: {resultado}.")
+    tx_id = await db.scalar(
+        select(Transaccion.id).where(Transaccion.reference_code == payload.data.reference_code)
+    )
+    background.add_task(emitir_factura, tx_id)  # responde rápido (<10 s) y factura después
     return {"received": True, "processed": True}

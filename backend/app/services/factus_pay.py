@@ -43,6 +43,26 @@ class FactusPayClient:
         async with FactusHttpClient(self.base_url, headers=headers) as http:
             return await http.request_with_retry("POST", "/v1/collections", json=payload)
 
+    async def get_collection(self, reference_code: str) -> dict:
+        """Detalle de un recaudo (GET /v1/collections/{reference_code}); sirve de polling sin webhook."""
+        if self._token is None:
+            self._token = await self._authenticate()
+        resp = await self._get_collection(self._token, reference_code)
+        if resp.status_code == 401:
+            self._token = await self._authenticate()
+            resp = await self._get_collection(self._token, reference_code)
+        if resp.is_error:
+            raise FactusPayError(f"Factus Pay no devolvió el recaudo ({resp.status_code}).")
+        data = resp.json().get("data")
+        if not isinstance(data, dict) or data.get("reference_code") != reference_code:
+            raise FactusPayError("La respuesta de Factus Pay no coincide con la referencia.")
+        return data
+
+    async def _get_collection(self, token: str, reference_code: str):
+        headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+        async with FactusHttpClient(self.base_url, headers=headers) as http:
+            return await http.request_with_retry("GET", f"/v1/collections/{reference_code}")
+
     async def create_collection(
         self, *, reference_code: str, amount: Decimal, expiration_seconds: int
     ) -> dict:

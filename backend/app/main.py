@@ -7,9 +7,11 @@ Rutas:
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from app.api.clientes import router as clientes_router
 from app.api.ventas import router as ventas_router
@@ -50,6 +52,11 @@ app.include_router(clientes_router)
 @app.get("/health", tags=["health"])
 async def health():
     return {"status": "ok", "env": settings.app_env}
+
+
+@app.get("/tienda", include_in_schema=False)
+async def tienda():
+    return FileResponse(Path(__file__).parent / "static" / "tienda.html")
 
 
 @app.get("/", tags=["root"])
