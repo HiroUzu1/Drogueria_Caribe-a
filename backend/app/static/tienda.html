@@ -74,11 +74,6 @@
 
             <!-- Actions -->
             <div class="flex items-center gap-3 md:gap-5">
-                <button onclick="document.getElementById('drop-zone').scrollIntoView({behavior: 'smooth'})" class="hidden sm:flex bg-teal-700 hover:bg-teal-800 text-white border border-teal-500 px-4 py-2.5 rounded-xl text-xs font-bold transition items-center gap-2 shadow-sm">
-                    <i class="fa-solid fa-file-medical text-sm"></i>
-                    Subir Fórmula
-                </button>
-
                 <!-- Cart Button -->
                 <button onclick="toggleCartDrawer()" class="relative p-3 bg-teal-700 border border-teal-500 shadow-sm hover:shadow-md hover:border-orange-300 text-white rounded-xl transition flex items-center gap-2">
                     <i class="fa-solid fa-cart-shopping text-lg"></i>
@@ -111,31 +106,8 @@
                         con la calidez del <span class="text-orange-500">Caribe.</span>
                     </h2>
                     <p class="text-slate-600 text-sm md:text-base max-w-xl leading-relaxed">
-                        Encuentra todos tus medicamentos, productos de cuidado personal y dermocosmética al mejor precio. Sube tu fórmula médica y nosotros nos encargamos del resto.
+                        Encuentra todos tus medicamentos, productos de cuidado personal y dermocosmética al mejor precio. Paga con QR y recibe tu factura electrónica al instante.
                     </p>
-                </div>
-
-                <!-- Drag & Drop Interactive Widget -->
-                <div class="lg:col-span-5">
-                    <div class="bg-white text-slate-900 rounded-3xl p-6 md:p-8 shadow-xl border border-orange-100 transform md:rotate-1 hover:rotate-0 transition duration-300">
-                        <h3 class="font-extrabold text-teal-800 text-lg flex items-center gap-2 mb-2">
-                            <i class="fa-solid fa-file-prescription text-orange-500"></i>
-                            Sube tu Fórmula Médica
-                        </h3>
-                        <p class="text-xs text-slate-500 mb-5">
-                            Cotizamos y despachamos tus medicamentos recetados rápidamente.
-                        </p>
-
-                        <!-- Drop Zone -->
-                        <div id="drop-zone" class="border-2 border-dashed border-teal-300 bg-teal-50/50 rounded-2xl p-8 text-center cursor-pointer transition-all duration-200 hover:border-teal-500 hover:bg-teal-100 group">
-                            <div class="w-16 h-16 bg-white text-teal-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 group-hover:text-orange-500 transition">
-                                <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
-                            </div>
-                            <p class="text-sm font-bold text-teal-900 mb-1">Haz clic o arrastra tu fórmula aquí</p>
-                            <p class="text-xs text-slate-500">Formatos soportados: JPG, PNG, PDF</p>
-                            <input type="file" id="file-input" class="hidden" accept="image/*,.pdf">
-                        </div>
-                    </div>
                 </div>
             </div>
         </section>
@@ -704,44 +676,6 @@
                     showStep(1);
                     break;
             }
-        }
-
-        // --- DRAG & DROP LOGIC ---
-        const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('file-input');
-
-        dropZone.addEventListener('click', () => fileInput.click());
-
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('drag-active');
-        });
-
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('drag-active');
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('drag-active');
-            if (e.dataTransfer.files.length) {
-                handleFileUpload(e.dataTransfer.files[0]);
-            }
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length) {
-                handleFileUpload(e.target.files[0]);
-            }
-        });
-
-        function handleFileUpload(file) {
-            dropZone.innerHTML = `
-                <i class="fa-solid fa-file-circle-check text-4xl text-teal-600 mb-2"></i>
-                <p class="text-sm font-bold text-teal-900">${file.name}</p>
-                <p class="text-[10px] text-teal-700 font-semibold mt-1">Fórmula adjuntada exitosamente</p>
-            `;
-            showToast("Archivo Cargado", `El archivo ${file.name} ha sido recibido para revisión.`);
         }
 
         // --- TOAST NOTIFICATION ---
