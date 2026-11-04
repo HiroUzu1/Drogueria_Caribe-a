@@ -7,14 +7,13 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import declarative_base
 
 from app.core.config import settings
 
 # Motor asíncrono (driver asyncpg). pool_pre_ping para resiliencia de conexión.
 engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=settings.APP_DEBUG,
+    settings.database_url,
+    echo=settings.app_debug,
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,
@@ -28,9 +27,6 @@ AsyncSessionLocal = async_sessionmaker(
     autocommit=False,
     autoflush=False,
 )
-
-# Base declarativa compartida por los modelos.
-Base = declarative_base()
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:

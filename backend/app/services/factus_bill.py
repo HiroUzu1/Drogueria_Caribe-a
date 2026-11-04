@@ -47,7 +47,7 @@ class FactusBillClient:
             "password": self.password,
         }
         async with FactusHttpClient(self.base_url) as http:
-            resp = await http.request_with_retry("POST", "/oauth/token", json=payload)
+            resp = await http.request_with_retry("POST", "/oauth/token", data=payload, headers={"Accept": "application/json"})
             resp.raise_for_status()
             data = resp.json()
             self._access_token = data.get("access_token", "")
@@ -66,7 +66,7 @@ class FactusBillClient:
 
     async def destroy_pending_by_reference(self, reference_code: str) -> None:
         """Elimina una factura pendiente para permitir reintento tras 409."""
-        async with FactusHttpClient(self.base_url) as http:
+        async with FactusHttpClient(self.base_url, headers=await self._auth_headers()) as http:
             resp = await http.request_with_retry(
                 "DELETE", f"/v2/bills/destroy/reference/{reference_code}"
             )
@@ -74,7 +74,7 @@ class FactusBillClient:
                 resp.raise_for_status()
 
     async def download_pdf(self, bill_number: str) -> bytes:
-        async with FactusHttpClient(self.base_url) as http:
+        async with FactusHttpClient(self.base_url, headers=await self._auth_headers()) as http:
             resp = await http.request_with_retry(
                 "GET", f"/v2/bills/{bill_number}/download-pdf"
             )
@@ -82,7 +82,7 @@ class FactusBillClient:
             return resp.content
 
     async def download_xml(self, bill_number: str) -> bytes:
-        async with FactusHttpClient(self.base_url) as http:
+        async with FactusHttpClient(self.base_url, headers=await self._auth_headers()) as http:
             resp = await http.request_with_retry(
                 "GET", f"/v2/bills/{bill_number}/download-xml/"
             )
