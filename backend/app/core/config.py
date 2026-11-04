@@ -44,6 +44,16 @@ class Settings(BaseSettings):
     # --- Frontend ---
     vite_api_url: str = "http://localhost:8000"
 
+    @property
+    def DATABASE_URL(self) -> str:
+        """Alias mayúsculas para sesión async."""
+        return self.database_url
+
+    @property
+    def APP_DEBUG(self) -> bool:
+        """Alias mayúsculas para motor de DB."""
+        return self.app_debug
+
 
 @lru_cache
 def get_settings() -> Settings:

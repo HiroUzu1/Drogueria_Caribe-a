@@ -1,5 +1,17 @@
-"""Paquete de base de datos del backend."""
-from .session import AsyncSessionLocal, get_db, engine
-from .base import Base
+import asyncio
+from app.db.session import engine
+from app.db.base import Base
 
-__all__ = ["Base", "AsyncSessionLocal", "get_db", "engine"]
+# Importar modelos para que SQLAlchemy los registre en Base.metadata
+import app.db.models.cliente
+import app.db.models.transaccion
+
+
+async def init_tables() -> None:
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    print("¡Tablas creadas exitosamente en PostgreSQL!")
+
+
+if __name__ == "__main__":
+    asyncio.run(init_tables())
