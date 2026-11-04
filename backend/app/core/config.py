@@ -37,6 +37,8 @@ class Settings(BaseSettings):
 
     # --- Factus Pay (Sandbox) ---
     factus_pay_base_url: str = "https://pay-api-sandbox.factus.com.co"
+    factus_pay_email: str = ""
+    factus_pay_password: str = ""
     factus_pay_client_id: str = ""
     factus_pay_client_secret: str = ""
     factus_pay_webhook_secret: str = ""

@@ -1,22 +1,20 @@
 """Cliente para Factus Pay (Sandbox).
 
-Endpoints:
-- POST /auth        -> obtención y reuso de token Bearer
-- POST /v1/collections -> creación de recaudo (QR / llave Bre-B)
-- GET  /v1/collections/:referenceCode -> polling de estado
+Endpoints reales (docs https://pay-developers.factus.com.co):
+- POST /auth                                   -> {email, password} -> {token}
+- POST /v1/collections                         -> crear recaudo
+- GET  /v1/collections/:referenceCode          -> ver estado
+- POST webhook (factores externos a la API)
 
-Manejo de errores HTTP:
-- 401 -> re-autenticación y reintento una vez
-- 422 -> error de validación de payload
-- 404 -> recurso no encontrado
+Respuestas vienen envueltas: {"data": {...}, "status": "success", "message": "..."}
 """
 
 from __future__ import annotations
 
+import hmac
 from typing import Optional
 
 import httpx
-from pydantic import BaseModel, ConfigDict
 
 from app.core.config import settings
 
@@ -34,12 +32,12 @@ class FactusPayNotFoundError(Exception):
 
 
 class FactusPayService:
-    """Servicio de Factus Pay con cliente HTTP asíncrono y reuso de token."""
+    """Servicio de Factus Pay con httpx async y reuso de token."""
 
     def __init__(self) -> None:
         self.base_url = settings.factus_pay_base_url.rstrip("/")
-        self.client_id = settings.factus_pay_client_id
-        self.client_secret = settings.factus_pay_client_secret
+        self.email = settings.factus_pay_email
+        self.password = settings.factus_pay_password
         self.webhook_secret = settings.factus_pay_webhook_secret
         self._access_token: Optional[str] = None
         self._client: Optional[httpx.AsyncClient] = None
@@ -49,35 +47,38 @@ class FactusPayService:
             self._client = httpx.AsyncClient(
                 base_url=self.base_url,
                 timeout=30.0,
+                follow_redirects=False,
             )
         return self._client
 
     async def _auth(self) -> str:
-        """POST /auth. Obtiene (o reusa) el token Bearer."""
+        """POST /auth. Obtiene (o reusa) el token."""
         if self._access_token:
             return self._access_token
 
         client = await self._get_client()
         resp = await client.post(
             "/auth",
-            json={
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
+            json={"email": self.email, "password": self.password},
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/json",
             },
         )
         if resp.status_code == 401:
             raise FactusPayAuthError("Credenciales de Factus Pay inválidas (401).")
         if resp.status_code == 422:
             raise FactusPayValidationError("Payload de auth inválido (422).")
+        if resp.status_code == 302:
+            raise FactusPayAuthError("Factus Pay redirigió; ver SDK de auth.")
         resp.raise_for_status()
         data = resp.json()
-        self._access_token = data.get("access_token") or data.get("token", "")
+        self._access_token = data.get("token") or data.get("access_token") or ""
         return self._access_token
 
     def _auth_headers(self) -> dict[str, str]:
-        token = self._access_token or ""
         return {
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"Bearer {self._access_token or ''}",
             "Content-Type": "application/json",
             "Accept": "application/json",
         }
@@ -93,15 +94,12 @@ class FactusPayService:
     ) -> httpx.Response:
         client = await self._get_client()
         await self._auth()
-        headers = self._auth_headers()
-        resp = await client.request(method, path, json=json, params=params, headers=headers)
+        resp = await client.request(method, path, json=json, params=params, headers=self._auth_headers())
 
         if resp.status_code == 401 and retry_auth:
-            # Token expirado: forzar re-auth y reintentar una vez
             self._access_token = None
             await self._auth()
-            headers = self._auth_headers()
-            resp = await client.request(method, path, json=json, params=params, headers=headers)
+            resp = await client.request(method, path, json=json, params=params, headers=self._auth_headers())
 
         if resp.status_code == 422:
             raise FactusPayValidationError(
@@ -118,51 +116,28 @@ class FactusPayService:
         *,
         reference_code: str,
         amount: float,
-        expiration_minutes: int = 30,
-        description: Optional[str] = None,
+        expiration: int = 1800,
     ) -> dict:
-        """POST /v1/collections. Crea un recaudo con QR y llave Bre-B.
-
-        Retorna dict con al menos: referenceCode, amount, qrCode (base64),
-        brebKey, status, expiresAt.
-        """
-        payload = {
-            "referenceCode": reference_code,
-            "amount": amount,
-            "expiration": expiration_minutes,
-        }
-        if description:
-            payload["description"] = description
-
-        resp = await self._request("POST", "/v1/collections", json=payload)
+        """POST /v1/collections. Retorna respuesta completa de la API."""
+        resp = await self._request(
+            "POST",
+            "/v1/collections",
+            json={
+                "reference_code": reference_code,
+                "amount": amount,
+                "expiration": expiration,
+            },
+        )
         return resp.json()
 
     async def consultar_estado(self, reference_code: str) -> dict:
-        """GET /v1/collections/{referenceCode}. Polling de estado del pago."""
+        """GET /v1/collections/{referenceCode}."""
         resp = await self._request("GET", f"/v1/collections/{reference_code}")
         return resp.json()
 
     def validar_webhook_key(self, key: str) -> bool:
-        """Valida la llave constante del webhook de Factus Pay."""
-        return bool(self.webhook_secret) and key == self.webhook_secret
+        return hmac.compare_digest(str(key), str(self.webhook_secret))
 
     async def aclose(self) -> None:
         if self._client is not None and not self._client.is_closed:
             await self._client.aclose()
-
-
-# Esquemas de respuesta tipados (Pydantic v2) para uso en la API
-
-
-class RecaudoCreado(BaseModel):
-    """Respuesta de creación de recaudo en Factus Pay."""
-
-    reference_code: str
-    amount: float
-    qr_code: Optional[str] = None
-    breb_key: Optional[str] = None
-    status: str
-    expires_at: Optional[str] = None
-    payment_url: Optional[str] = None
-
-    model_config = ConfigDict(from_attributes=True)

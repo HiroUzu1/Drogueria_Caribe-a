@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import random
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
@@ -28,6 +30,7 @@ from app.services.factus_pay import (
     FactusPayNotFoundError,
     FactusPayValidationError,
 )
+from app.services.ventas import confirmar_pago
 
 router = APIRouter(prefix="/api", tags=["ventas"])
 
@@ -157,8 +160,7 @@ async def crear_venta(
         recaudo = await service.crear_recaudo(
             reference_code=transaccion.reference_code,
             amount=float(transaccion.total),
-            expiration_minutes=30,
-            description=f"Venta {transaccion.reference_code} - Drogueria Caribe",
+            expiration=1800,
         )
     except FactusPayValidationError as exc:
         await service.aclose()
@@ -186,15 +188,54 @@ async def crear_venta(
 
     await service.aclose()
 
+    if isinstance(recaudo, dict):
+        data = recaudo.get("data") if isinstance(recaudo.get("data"), dict) else recaudo
+    else:
+        data = {}
+
+    qr_code = (data.get("qr") or data.get("qr_code") or data.get("qrCode"))
+    breb_key = (data.get("breb_key") or data.get("brebKey"))
+    expires_at = (data.get("qr_expires_at") or data.get("expires_at") or data.get("expiresAt"))
+
     return VentaResponse(
         venta_id=transaccion.id,
         reference_code=transaccion.reference_code,
         estado=transaccion.estado,
-        payment_url=recaudo.get("payment_url"),
-        qr_code=recaudo.get("qrCode") or recaudo.get("qr_code"),
-        breb_key=recaudo.get("brebKey") or recaudo.get("breb_key"),
-        expires_at=recaudo.get("expiresAt") or recaudo.get("expires_at"),
+        payment_url=recaudo.get("payment_url") if isinstance(recaudo, dict) else None,
+        qr_code=qr_code,
+        breb_key=breb_key,
+        expires_at=expires_at,
     )
+
+
+async def _intentar_confirmar_pago(db: AsyncSession, reference_code: str) -> None:
+    """Consulta Factus Pay y confirma el pago si está 'paid'."""
+    service = FactusPayService()
+    try:
+        recaudo = await service.consultar_estado(reference_code)
+    except Exception:
+        await service.aclose()
+        return
+    await service.aclose()
+
+    if not isinstance(recaudo, dict):
+        return
+    data = recaudo.get("data") if isinstance(recaudo.get("data"), dict) else recaudo
+    estado = str(data.get("status") or data.get("estado") or "").lower()
+    if estado != "paid":
+        return
+
+    result_tx = await db.execute(
+        select(Transaccion).options(selectinload(Transaccion.items)).where(Transaccion.reference_code == reference_code)
+    )
+    transaccion: Optional[Transaccion] = result_tx.scalar_one_or_none()
+    if transaccion is None:
+        return
+    amount = data.get("amount", transaccion.total)
+    try:
+        await confirmar_pago(db, reference_code, Decimal(str(amount)))
+    except Exception:
+        return
 
 
 @router.get(
@@ -204,11 +245,38 @@ async def crear_venta(
 )
 async def consultar_estado_venta(
     reference_code: str,
+    refresh: bool = Query(False, description="Consulta también a Factus Pay y actualiza si está pagado"),
     db: AsyncSession = Depends(get_db),
 ) -> TransaccionOut:
     """Devuelve el estado actual de la venta."""
+    if refresh:
+        await _intentar_confirmar_pago(db, reference_code)
+
     result = await db.execute(
-        select(Transaccion).where(Transaccion.reference_code == reference_code)
+        select(Transaccion).options(selectinload(Transaccion.items)).where(Transaccion.reference_code == reference_code)
+    )
+    transaccion: Optional[Transaccion] = result.scalar_one_or_none()
+    if transaccion is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Venta no encontrada."
+        )
+    return transaccion
+
+
+@router.get(
+    "/ventas/{reference_code}/poll",
+    response_model=TransaccionOut,
+    summary="Polling activo a Factus Pay",
+)
+async def poll_venta(
+    reference_code: str,
+    db: AsyncSession = Depends(get_db),
+) -> TransaccionOut:
+    """Consulta a Factus Pay y actualiza el estado de la venta."""
+    await _intentar_confirmar_pago(db, reference_code)
+
+    result = await db.execute(
+        select(Transaccion).options(selectinload(Transaccion.items)).where(Transaccion.reference_code == reference_code)
     )
     transaccion: Optional[Transaccion] = result.scalar_one_or_none()
     if transaccion is None:

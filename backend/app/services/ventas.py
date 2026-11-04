@@ -34,6 +34,8 @@ async def confirmar_pago(db: AsyncSession, reference_code: str, amount: Decimal)
         return "not_pending"
 
     for item in tx.items:
+        if item.producto_id is None:
+            continue
         result = await db.execute(
             update(Producto)
             .where(Producto.id == item.producto_id, Producto.stock >= int(item.quantity))
@@ -57,7 +59,7 @@ async def confirmar_pago(db: AsyncSession, reference_code: str, amount: Decimal)
         Venta(
             transaccion_id=tx.id,
             cliente_id=tx.cliente_id,
-            nit=f"{tx.cliente.identificacion}-{tx.cliente.dv}",
+            nit=f"{tx.cliente.identificacion}-{tx.cliente.dv}" if tx.cliente.dv else tx.cliente.identificacion,
             total=tx.total,
         )
     )

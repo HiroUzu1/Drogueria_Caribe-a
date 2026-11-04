@@ -23,6 +23,7 @@ from app.db.session import engine
 import app.db.models.cliente  # noqa: F401
 import app.db.models.producto  # noqa: F401
 import app.db.models.transaccion  # noqa: F401
+import app.db.models.venta  # noqa: F401
 
 
 @asynccontextmanager
