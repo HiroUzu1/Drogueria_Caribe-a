@@ -1,13 +1,19 @@
-"""Esquemas Pydantic para Cliente."""
+"""Esquemas Pydantic v2 para Cliente.
+
+Búsqueda y registro express por cédula:
+- identificacion, nombres, apellidos, email, telefono
+"""
 
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 
 class ClienteBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     identificacion: str = Field(..., min_length=3, max_length=50)
     tipo_doc: Optional[str] = Field(None, max_length=20)
     dv: Optional[str] = Field(None, max_length=2)
@@ -24,6 +30,7 @@ class ClienteBase(BaseModel):
 
 
 class ClienteCreate(ClienteBase):
+    """Registro express de cliente por cédula."""
     pass
 
 
@@ -41,5 +48,12 @@ class ClienteOut(ClienteBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+
+class ClienteBuscarOut(BaseModel):
+    """Resultado de búsqueda rápida por cédula."""
+    identificacion: str
+    nombres: Optional[str] = None
+    apellidos: Optional[str] = None
+    email: Optional[str] = None
+    telefono: Optional[str] = None
+    existe: bool

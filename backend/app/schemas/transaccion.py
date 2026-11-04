@@ -1,13 +1,18 @@
-"""Esquemas Pydantic para Transaccion (venta) y sus ítems."""
+"""Esquemas Pydantic v2 para Transaccion (venta) y sus ítems.
+
+Incluye respuesta de venta con código QR base64 y llave Bre-B de Factus Pay.
+"""
 
 from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class TransaccionItemBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     producto_id: Optional[UUID] = None
     code_reference: Optional[str] = Field(None, max_length=100)
     name: str = Field(..., max_length=200)
@@ -34,11 +39,10 @@ class TransaccionItemOut(TransaccionItemBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 class TransaccionBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     reference_code: str = Field(..., max_length=100)
     cliente_id: UUID
     estado: Optional[str] = Field("PENDIENTE_PAGO", max_length=40)
@@ -46,12 +50,15 @@ class TransaccionBase(BaseModel):
 
 
 class TransaccionCreate(BaseModel):
+    """Entrada de POST /api/ventas: cédula + ítems."""
     identificacion: str = Field(..., min_length=3, max_length=50)
     items: List[TransaccionItemCreate] = Field(..., min_length=1)
     observacion: Optional[str] = None
 
 
 class TransaccionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     reference_code: str
     cliente_id: UUID
@@ -65,16 +72,16 @@ class TransaccionOut(BaseModel):
     completed_at: Optional[datetime]
     items: List[TransaccionItemOut] = []
 
-    class Config:
-        from_attributes = True
-
 
 class VentaResponse(BaseModel):
     """Respuesta de POST /api/ventas con link/QR de Factus Pay."""
+
+    model_config = ConfigDict(from_attributes=True)
 
     venta_id: UUID
     reference_code: str
     estado: str
     payment_url: Optional[str] = None
     qr_code: Optional[str] = None
+    breb_key: Optional[str] = None
     expires_at: Optional[str] = None

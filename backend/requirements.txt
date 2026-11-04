@@ -20,8 +20,7 @@ python-dotenv==1.0.1
 
 # Utilidades
 python-dateutil==2.9.0.post0
-uuid>=1.33
 
-# Seguridad (opcional, para firma de webhook y tokens)
+# Seguridad (opcional)
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4

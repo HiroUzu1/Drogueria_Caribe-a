@@ -35,8 +35,8 @@ class Settings(BaseSettings):
     factus_bill_password: str = ""
     factus_numbering_range_id: str | int = 123
 
-    # --- Factus Pay (Sandbox, documentación pendiente) ---
-    factus_pay_base_url: str = "https://api-sandbox.factus.com.co"
+    # --- Factus Pay (Sandbox) ---
+    factus_pay_base_url: str = "https://pay-api-sandbox.factus.com.co"
     factus_pay_client_id: str = ""
     factus_pay_client_secret: str = ""
     factus_pay_webhook_secret: str = ""

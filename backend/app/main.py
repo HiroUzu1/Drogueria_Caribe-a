@@ -9,6 +9,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.deps import get_db
+from app.api import clientes as clientes_router
+from app.api import recaudos as recaudos_router
 from app.core.config import settings
 
 app = FastAPI(
@@ -26,6 +28,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(clientes_router.router)
+app.include_router(recaudos_router.router)
 
 
 @app.get("/health", tags=["health"])
