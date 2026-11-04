@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     factus_pay_password: str = ""
     factus_pay_webhook_key: str = ""
     factus_pay_qr_expiration_seconds: int = 1800
+    factus_pay_poll_enabled: bool = True
 
     # --- Administración (inventario y registro de ventas) ---
     admin_api_key: str = ""

@@ -193,10 +193,25 @@ async def crear_venta(
 
 
 @router.get("/api/ventas/{venta_id}", response_model=TransaccionPagoOut, tags=["ventas"])
-async def obtener_venta(venta_id: UUID, db: AsyncSession = Depends(get_db)):
+async def obtener_venta(
+    venta_id: UUID, background: BackgroundTasks, db: AsyncSession = Depends(get_db)
+):
     tx = await _cargar_transaccion(db, id=venta_id)
     if tx is None:
         raise HTTPException(status_code=404, detail="Venta no encontrada.")
+    if tx.estado == "PENDIENTE_PAGO" and settings.factus_pay_poll_enabled:
+        # Alternativa al webhook (que requiere URL pública): consulta el recaudo en Factus.
+        try:
+            data = await factus_pay.get_collection(tx.reference_code)
+            if data.get("status") == "paid":
+                resultado = await confirmar_pago(
+                    db, tx.reference_code, Decimal(str(data.get("amount")))
+                )
+                if resultado == "pagada":
+                    background.add_task(emitir_factura, tx.id)
+                tx = await _cargar_transaccion(db, id=venta_id)
+        except (FactusPayError, httpx.HTTPError, ArithmeticError):
+            pass  # el cliente volverá a consultar; no se rompe la lectura
     return tx
 
 
