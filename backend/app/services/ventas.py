@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -10,6 +11,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db.models import Producto, Transaccion, Venta
+
+# Referencias a las tareas de facturación en curso (evita que el recolector de basura las cancele)
+_tareas_facturacion: set[asyncio.Task] = set()
+
+
+def _programar_factura(transaccion_id) -> None:
+    """Emite la factura en segundo plano para que el webhook responda a Factus en menos de 10 s."""
+    from app.services.facturacion import emitir_factura
+
+    tarea = asyncio.create_task(emitir_factura(transaccion_id))
+    _tareas_facturacion.add(tarea)
+    tarea.add_done_callback(_tareas_facturacion.discard)
 
 
 async def confirmar_pago(db: AsyncSession, reference_code: str, amount: Decimal) -> str:
@@ -64,4 +77,6 @@ async def confirmar_pago(db: AsyncSession, reference_code: str, amount: Decimal)
         )
     )
     await db.commit()
+    # Solo aquí la venta pasa de PENDIENTE_PAGO a PAGADA, así que la factura se programa una sola vez
+    _programar_factura(tx.id)
     return "pagada"

@@ -60,6 +60,14 @@ app.include_router(productos_router.router)
 app.include_router(recaudos_router.router)
 app.include_router(ventas_router.router)
 
+# Misma función sin el prefijo /api, por si en el panel de Factus Pay se registró /webhook/factus-pay
+app.add_api_route(
+    "/webhook/factus-pay",
+    recaudos_router.webhook_factus_pay,
+    methods=["POST"],
+    include_in_schema=False,
+)
+
 
 @app.get("/health", tags=["health"])
 async def health():

@@ -136,6 +136,9 @@ class FactusPayService:
         return resp.json()
 
     def validar_webhook_key(self, key: str) -> bool:
+        # Sin llave configurada se rechaza todo: si no, un ?key= vacío pasaría la validación
+        if not self.webhook_secret or not key:
+            return False
         return hmac.compare_digest(str(key), str(self.webhook_secret))
 
     async def aclose(self) -> None:
