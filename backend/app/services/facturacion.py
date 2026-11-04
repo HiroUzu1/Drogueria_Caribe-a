@@ -62,6 +62,8 @@ def construir_factura(tx: Transaccion) -> dict:
             "identification_document_code": "31",  # NIT
             "identification": cliente.identificacion,
             "dv": cliente.dv,
+            "legal_organization_code": "1",  # persona jurídica
+            "names": cliente.razon_social or cliente.identificacion,
             "company": cliente.razon_social or cliente.identificacion,
             "email": cliente.email,
             "municipality_id": cliente.municipio_code or settings.factus_default_municipality_id,
@@ -106,6 +108,8 @@ async def emitir_factura(transaccion_id: UUID) -> str:
                 await bill_client.destroy_pending_by_reference(tx.reference_code)
                 respuesta = await bill_client.validate_bill(payload)
             bill = (respuesta.get("data") or {}).get("bill") or respuesta.get("data") or {}
+            if bill.get("is_validated") is False or not bill.get("cufe"):
+                raise ValueError(f"Factus no validó la factura: {json.dumps(bill.get('errors'), ensure_ascii=False)[:500]}")
             links = (respuesta.get("data") or {}).get("links") or {}
             venta.factura_numero = bill.get("number")
             venta.cufe = bill.get("cufe")

@@ -35,3 +35,5 @@ def test_construir_factura_contado_transferencia():
     assert bill["payment_details"][0]["amount"] == 20000.0
     assert bill["items"][0]["taxes"] == [{"is_excluded": True}]
     assert bill["customer"]["identification"] == "900373913"
+    assert bill["customer"]["legal_organization_code"] == "1"
+    assert bill["customer"]["names"] == "Cliente SAS"

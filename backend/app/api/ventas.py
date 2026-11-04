@@ -31,7 +31,7 @@ from app.services.ventas import confirmar_pago
 
 router = APIRouter()
 
-MIN_COBRO = Decimal("1000")
+MIN_COBRO = Decimal("10000")  # mínimo real del sandbox de Factus Pay (la documentación dice 1000)
 MAX_COBRO = Decimal("12100000")
 
 factus_pay = FactusPayClient(
