@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     factus_bill_username: str = ""
     factus_bill_password: str = ""
     factus_numbering_range_id: str | int = 123
+    factus_default_municipality_id: str = "980"  # id de municipio en Factus (Bogotá por defecto)
 
     # --- Factus Pay (Sandbox: https://pay-api-sandbox.factus.com.co) ---
     factus_pay_base_url: str = "https://pay-api-sandbox.factus.com.co"

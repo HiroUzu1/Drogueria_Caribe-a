@@ -15,6 +15,8 @@ class ProductoCreate(BaseModel):
     nombre: str = Field(min_length=1, max_length=200)
     precio_cop: Decimal = Field(gt=0, max_digits=14, decimal_places=2)
     stock: int = Field(ge=0)
+    iva_excluido: bool = True
+    iva_rate: Decimal = Field(default=Decimal("19.00"), ge=0, le=100, max_digits=5, decimal_places=2)
 
     @field_validator("sku", "nombre")
     @classmethod
@@ -30,6 +32,8 @@ class ProductoUpdate(BaseModel):
     precio_cop: Optional[Decimal] = Field(default=None, gt=0, max_digits=14, decimal_places=2)
     stock: Optional[int] = Field(default=None, ge=0)
     activo: Optional[bool] = None
+    iva_excluido: Optional[bool] = None
+    iva_rate: Optional[Decimal] = Field(default=None, ge=0, le=100, max_digits=5, decimal_places=2)
 
 
 class ProductoOut(BaseModel):
@@ -41,6 +45,8 @@ class ProductoOut(BaseModel):
     precio_cop: Decimal
     stock: int
     activo: bool
+    iva_excluido: bool
+    iva_rate: Decimal
 
 
 class VentaItemCreate(BaseModel):
@@ -106,6 +112,10 @@ class RegistroVentaOut(BaseModel):
     nit: str
     total: Decimal
     created_at: datetime
+    factura_numero: Optional[str] = None
+    cufe: Optional[str] = None
+    factura_url: Optional[str] = None
+    factura_error: Optional[str] = None
     items: List[VentaItemOut]
 
 
