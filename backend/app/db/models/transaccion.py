@@ -57,10 +57,36 @@ class Transaccion(Base):
         DateTime(timezone=True), nullable=True
     )
 
+    qr_code: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    qr_expires_at: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    pagado_en: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     cliente: Mapped["Cliente"] = relationship(back_populates="transacciones")
     items: Mapped[List["TransaccionItem"]] = relationship(
         back_populates="transaccion", cascade="all, delete-orphan"
     )
+    venta: Mapped[Optional["Venta"]] = relationship(
+        back_populates="transaccion", uselist=False
+    )
+
+    # Requieren la relación `venta` cargada (selectinload).
+    @property
+    def factura_numero(self) -> Optional[str]:
+        return self.venta.factura_numero if self.venta else None
+
+    @property
+    def cufe(self) -> Optional[str]:
+        return self.venta.cufe if self.venta else None
+
+    @property
+    def factura_url(self) -> Optional[str]:
+        return self.venta.factura_url if self.venta else None
+
+    @property
+    def factura_error(self) -> Optional[str]:
+        return self.venta.factura_error if self.venta else None
 
     def __repr__(self) -> str:  # pragma: no cover
         return (
@@ -87,7 +113,10 @@ class TransaccionItem(Base):
         index=True,
     )
     producto_id: Mapped[Optional[UUID]] = mapped_column(
-        PG_UUID(as_uuid=True), nullable=True, index=True
+        PG_UUID(as_uuid=True),
+        ForeignKey("productos.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
     code_reference: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)

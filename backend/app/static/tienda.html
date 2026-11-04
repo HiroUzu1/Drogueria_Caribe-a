@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Droguería Caribeña - E-Commerce</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #fff7ed; /* orange-50 */
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #0d9488; /* teal-600 */
+            border-radius: 4px;
+        }
+        .drag-active {
+            border-color: #0f766e !important; /* teal-700 */
+            background-color: #ccfbf1 !important; /* teal-100 */
+        }
+    </style>
+</head>
+<body class="bg-orange-50 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <!-- Top Alert Bar -->
+    <div class="bg-teal-800 text-white text-xs py-2 px-4 text-center font-medium">
+        <span class="bg-orange-500 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider mr-2">Promo</span>
+        Envío GRATIS en pedidos superiores a $50.000 COP en Montería y la Costa.
+    </div>
+
+    <!-- MAIN NAVBAR -->
+    <header class="bg-teal-600 text-white border-b border-teal-700 sticky top-0 z-40 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-2 cursor-pointer">
+                <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-teal-600 text-xl font-bold shadow-sm">
+                    <i class="fa-solid fa-house-medical-flag"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-xl tracking-tight leading-tight">Droguería<br><span class="text-orange-300 text-lg">Caribeña</span></h1>
+                </div>
+            </div>
+
+            <!-- Informative Highlights (Replaces Search Bar) -->
+            <div class="flex-1 hidden md:flex justify-center items-center gap-8 mx-4 text-teal-100 text-sm font-medium">
+                <div class="flex items-center gap-2 bg-teal-700/50 px-4 py-2 rounded-full border border-teal-500/30 shadow-sm">
+                    <i class="fa-solid fa-motorcycle text-orange-400"></i>
+                    <span>Domicilios en Montería</span>
+                </div>
+                <div class="flex items-center gap-2 bg-teal-700/50 px-4 py-2 rounded-full border border-teal-500/30 shadow-sm">
+                    <i class="fa-solid fa-clock text-orange-400"></i>
+                    <span>Abierto 24/7</span>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-3 md:gap-5">
+                <button onclick="document.getElementById('drop-zone').scrollIntoView({behavior: 'smooth'})" class="hidden sm:flex bg-teal-700 hover:bg-teal-800 text-white border border-teal-500 px-4 py-2.5 rounded-xl text-xs font-bold transition items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-file-medical text-sm"></i>
+                    Subir Fórmula
+                </button>
+
+                <!-- Cart Button -->
+                <button onclick="toggleCartDrawer()" class="relative p-3 bg-teal-700 border border-teal-500 shadow-sm hover:shadow-md hover:border-orange-300 text-white rounded-xl transition flex items-center gap-2">
+                    <i class="fa-solid fa-cart-shopping text-lg"></i>
+                    <span id="cart-badge" class="absolute -top-1.5 -right-1.5 bg-orange-500 text-white font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center shadow-sm">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1">
+        
+        <!-- HERO SECTION -->
+        <section class="bg-teal-50 text-slate-800 py-12 px-4 relative overflow-hidden border-b border-teal-100">
+            <!-- Decorative wave/coastal shapes -->
+            <div class="absolute top-0 right-0 opacity-10 pointer-events-none text-teal-600">
+                <svg width="400" height="400" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="currentColor" d="M42.7,-73.4C55.9,-66.1,67.6,-54.6,76.5,-41.2C85.4,-27.8,91.6,-13.9,90.2,-0.8C88.8,12.3,79.8,24.6,70.6,35.8C61.4,47,52,57.1,40.4,63.9C28.8,70.7,14.4,74.2,0.6,73.1C-13.2,72,-26.4,66.4,-37.8,59.3C-49.2,52.2,-58.8,43.6,-66.5,33C-74.2,22.4,-80,9.7,-79.8,-2.8C-79.6,-15.3,-73.4,-27.6,-64.8,-37.6C-56.2,-47.6,-45.1,-55.3,-33.3,-63.1C-21.5,-70.9,-9,-78.8,3.2,-84.1C15.4,-89.4,30.8,-92.1,42.7,-73.4Z" transform="translate(100 100)" />
+                </svg>
+            </div>
+
+            <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
+                <!-- Text Content -->
+                <div class="lg:col-span-7 space-y-5">
+                    <div class="inline-flex items-center gap-2 bg-teal-100 text-teal-800 border border-teal-200 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm">
+                        <i class="fa-solid fa-motorcycle text-orange-500"></i> Entregas rápidas en Montería y la Costa
+                    </div>
+                    <h2 class="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight text-teal-900">
+                        Tu salud en casa, <br>
+                        con la calidez del <span class="text-orange-500">Caribe.</span>
+                    </h2>
+                    <p class="text-slate-600 text-sm md:text-base max-w-xl leading-relaxed">
+                        Encuentra todos tus medicamentos, productos de cuidado personal y dermocosmética al mejor precio. Sube tu fórmula médica y nosotros nos encargamos del resto.
+                    </p>
+                </div>
+
+                <!-- Drag & Drop Interactive Widget -->
+                <div class="lg:col-span-5">
+                    <div class="bg-white text-slate-900 rounded-3xl p-6 md:p-8 shadow-xl border border-orange-100 transform md:rotate-1 hover:rotate-0 transition duration-300">
+                        <h3 class="font-extrabold text-teal-800 text-lg flex items-center gap-2 mb-2">
+                            <i class="fa-solid fa-file-prescription text-orange-500"></i>
+                            Sube tu Fórmula Médica
+                        </h3>
+                        <p class="text-xs text-slate-500 mb-5">
+                            Cotizamos y despachamos tus medicamentos recetados rápidamente.
+                        </p>
+
+                        <!-- Drop Zone -->
+                        <div id="drop-zone" class="border-2 border-dashed border-teal-300 bg-teal-50/50 rounded-2xl p-8 text-center cursor-pointer transition-all duration-200 hover:border-teal-500 hover:bg-teal-100 group">
+                            <div class="w-16 h-16 bg-white text-teal-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 group-hover:text-orange-500 transition">
+                                <i class="fa-solid fa-cloud-arrow-up text-2xl"></i>
+                            </div>
+                            <p class="text-sm font-bold text-teal-900 mb-1">Haz clic o arrastra tu fórmula aquí</p>
+                            <p class="text-xs text-slate-500">Formatos soportados: JPG, PNG, PDF</p>
+                            <input type="file" id="file-input" class="hidden" accept="image/*,.pdf">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CATALOG SECTION -->
+        <section class="max-w-7xl mx-auto px-4 py-12">
+            
+            <!-- Title -->
+            <div class="mb-8">
+                <h3 class="text-2xl font-extrabold text-teal-900">Nuestros Productos</h3>
+                <p class="text-sm text-slate-500 mt-1">Explora nuestro catálogo con los mejores precios de la región</p>
+            </div>
+
+            <!-- Product Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="product-grid">
+                
+                <p id="catalog-status" class="col-span-full text-center text-sm text-slate-500 py-10">Cargando catálogo...</p>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-teal-800 text-teal-50 py-10 mt-10 border-t-4 border-orange-500">
+        <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div>
+                <h3 class="font-extrabold text-xl tracking-tight text-white mb-4">Droguería<span class="text-orange-400">Caribeña</span></h3>
+                <p class="text-sm text-teal-100">El cuidado y frescura de la costa caribe en cada medicamento que entregamos. Montería, Córdoba.</p>
+            </div>
+            <div>
+                <h4 class="font-bold text-white mb-4">Enlaces Rápidos</h4>
+                <ul class="space-y-2 text-sm text-teal-100">
+                    <li><a href="#" class="hover:text-white hover:underline transition">Términos y Condiciones</a></li>
+                    <li><a href="#" class="hover:text-white hover:underline transition">Política de Entregas</a></li>
+                    <li><a href="#" class="hover:text-white hover:underline transition">Contacto</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold text-white mb-4">Atención al Cliente</h4>
+                <p class="text-sm text-teal-100 mb-2"><i class="fa-brands fa-whatsapp text-green-400 mr-2"></i> +57 300 123 4567</p>
+                <p class="text-sm text-teal-100"><i class="fa-solid fa-envelope text-orange-400 mr-2"></i> hola@drogueriacaribena.com</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- SLIDE-OUT CART DRAWER -->
+    <div id="cart-drawer" class="fixed inset-0 z-50 flex justify-end bg-slate-900/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
+        <div id="cart-drawer-content" class="w-full max-w-md bg-white h-full shadow-2xl flex flex-col justify-between text-slate-900 transform translate-x-full transition-transform duration-300">
+            <!-- Cart Header -->
+            <div class="p-5 border-b border-orange-100 flex items-center justify-between bg-orange-50/50">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center">
+                        <i class="fa-solid fa-basket-shopping text-lg"></i>
+                    </div>
+                    <h3 class="font-extrabold text-lg text-teal-900">Tu Carrito</h3>
+                </div>
+                <button onclick="toggleCartDrawer()" class="text-slate-400 hover:text-orange-500 bg-white rounded-full w-8 h-8 flex items-center justify-center shadow-sm border border-slate-100">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Cart Items Container -->
+            <div class="p-5 flex-1 overflow-y-auto space-y-4 custom-scrollbar bg-white" id="cart-items-list">
+                <!-- Empty state shown by default -->
+                <div id="cart-empty" class="text-center py-10">
+                    <i class="fa-solid fa-cart-arrow-down text-5xl text-orange-100 mb-4"></i>
+                    <p class="text-slate-500 font-medium text-sm">Tu carrito está vacío.</p>
+                </div>
+                <!-- Items will be injected here via JS -->
+            </div>
+
+            <!-- Cart Footer -->
+            <div class="p-5 border-t border-orange-100 bg-orange-50/50 space-y-4">
+                <div class="flex justify-between items-center text-sm font-bold text-slate-600">
+                    <span>Subtotal:</span>
+                    <span id="cart-subtotal" class="text-slate-900">$0</span>
+                </div>
+                <p class="text-[11px] text-slate-500">El IVA (si aplica) se calcula al generar el cobro.</p>
+                <div class="pt-3 border-t border-orange-200 flex justify-between items-center text-lg font-extrabold text-teal-900">
+                    <span>Total:</span>
+                    <span id="cart-total" class="text-orange-600">$0</span>
+                </div>
+                <button onclick="checkout()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-xl text-sm transition shadow-lg shadow-orange-500/30 flex justify-center items-center gap-2">
+                    Continuar al Pago <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 bg-teal-800 text-white px-5 py-4 rounded-2xl shadow-2xl flex items-center gap-3 transform translate-y-24 opacity-0 transition-all duration-300 border border-teal-600">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-orange-400 text-xl"></i>
+        <div>
+            <p id="toast-title" class="text-sm font-bold text-white leading-none mb-1">Notificación</p>
+            <p id="toast-msg" class="text-xs text-teal-100">Mensaje de confirmación</p>
+        </div>
+    </div>
+
+    <!-- POS CHECKOUT MODAL (Integración Factus) -->
+    <div id="checkout-modal" class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 px-4">
+        <div class="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col transform scale-95 transition-transform duration-300 border border-teal-500" id="checkout-modal-content">
+            
+            <!-- Modal Header -->
+            <div class="bg-teal-600 px-6 py-4 flex items-center justify-between shadow-sm">
+                <h3 class="font-extrabold text-white text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-cash-register text-orange-300"></i>
+                    Facturación POS & Pago
+                </h3>
+                <button onclick="closeCheckoutModal()" class="text-teal-200 hover:text-white transition w-8 h-8 rounded-full hover:bg-teal-700 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body (Steps) -->
+            <div class="p-6 md:p-8 bg-orange-50 relative min-h-[350px]">
+                
+                <!-- PASO 1: Datos del Cliente (POST /api/ventas) -->
+                <div id="step-1" class="block space-y-5">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 bg-white border-2 border-teal-200 text-teal-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+                            <i class="fa-solid fa-id-card text-2xl"></i>
+                        </div>
+                        <h4 class="font-bold text-teal-900 text-xl">Datos del Cliente</h4>
+                        <p class="text-sm text-slate-500 mt-1">Ingresa la identificación para asociar la venta y emitir la factura DIAN.</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-teal-800 mb-1.5 uppercase tracking-wide">NIT (con o sin dígito de verificación)</label>
+                        <input type="text" inputmode="numeric" id="client-id" placeholder="Ej. 900373913 o 900373913-4" class="w-full bg-white text-slate-900 text-base px-4 py-3 rounded-xl border border-teal-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition outline-none shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-teal-800 mb-1.5 uppercase tracking-wide">Razón Social / Nombre</label>
+                        <input type="text" id="client-name" placeholder="Ej. Juan Pérez" class="w-full bg-white text-slate-900 text-base px-4 py-3 rounded-xl border border-teal-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition outline-none shadow-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-teal-800 mb-1.5 uppercase tracking-wide">Correo electrónico</label>
+                        <input type="email" id="client-email" placeholder="Ej. cliente@correo.com" class="w-full bg-white text-slate-900 text-base px-4 py-3 rounded-xl border border-teal-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition outline-none shadow-sm">
+                    </div>
+                    <button onclick="processStep1(event)" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2 mt-4 active:scale-95">
+                        Generar Cobro POS <i class="fa-solid fa-qrcode"></i>
+                    </button>
+                </div>
+
+                <!-- PASO 2: Factus Pay QR (POST /v1/collections) -->
+                <div id="step-2" class="hidden space-y-5 text-center">
+                    <div class="mb-2">
+                        <span class="bg-orange-100 text-orange-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm border border-orange-200 animate-pulse">
+                            Pendiente de Pago
+                        </span>
+                    </div>
+                    <h4 class="font-bold text-teal-900 text-xl mb-1">Escanea para Pagar</h4>
+                    <p class="text-sm text-slate-500 mb-6">Muestra este código al cliente. La pantalla avanza sola cuando se confirma el pago.</p>
+                    
+                    <div class="bg-white border-2 border-dashed border-teal-300 p-4 rounded-2xl inline-block mx-auto mb-4 shadow-sm">
+                        <img id="qr-img" alt="Código QR de pago" class="w-56 h-56 object-contain">
+                    </div>
+
+                    <div class="bg-white rounded-xl p-4 text-sm text-left border border-teal-100 shadow-inner">
+                        <div class="flex justify-between border-b border-orange-50 pb-2 mb-2">
+                            <span class="text-teal-700 font-semibold">Ref. Venta:</span>
+                            <span id="pay-ref" class="font-extrabold text-teal-900 text-xs break-all"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-teal-700 font-semibold">Total a pagar:</span>
+                            <span id="pay-total" class="font-extrabold text-orange-600"></span>
+                        </div>
+                    </div>
+
+                    <button onclick="cancelPayment()" class="w-full bg-white hover:bg-orange-50 text-slate-700 font-bold py-3.5 rounded-xl transition border border-slate-300 mt-2 active:scale-95">
+                        Cancelar
+                    </button>
+                </div>
+
+                <!-- PASO 3: Loading Factura (Webhook / Polling & POST /v2/bills/validate) -->
+                <div id="step-3" class="hidden flex-col items-center justify-center h-full min-h-[300px] text-center">
+                    <i class="fa-solid fa-circle-notch fa-spin text-6xl text-orange-500 mb-6 drop-shadow-md"></i>
+                    <h4 class="font-bold text-teal-900 text-xl mb-2">Pago Confirmado</h4>
+                    <p class="text-slate-600 text-sm max-w-xs mx-auto leading-relaxed">
+                        El recaudo ha sido exitoso vía Factus Pay.<br><br>
+                        <span id="step3-msg" class="font-bold text-teal-700 bg-teal-100 px-3 py-1 rounded-full text-xs">Generando Factura Electrónica DIAN...</span>
+                    </p>
+                </div>
+
+                <!-- PASO 4: Factura Exitosa -->
+                <div id="step-4" class="hidden text-center space-y-5">
+                    <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-2 border-4 border-white shadow-md transform scale-110">
+                        <i class="fa-solid fa-check text-4xl"></i>
+                    </div>
+                    <h4 class="font-extrabold text-teal-900 text-2xl">¡Venta Exitosa!</h4>
+                    <p class="text-sm text-slate-500">La factura ha sido validada por la DIAN correctamente.</p>
+                    
+                    <div class="bg-white border border-teal-100 rounded-xl p-4 text-left shadow-sm mt-4 relative overflow-hidden">
+                        <div class="absolute right-0 top-0 w-16 h-16 bg-teal-50 rounded-bl-full -z-10"></div>
+                        
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Nº Factura</p>
+                        <p id="invoice-number" class="font-extrabold text-orange-500 text-xl mb-3"></p>
+                        
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">CUFE</p>
+                        <p id="invoice-cufe" class="font-mono text-[10px] text-slate-600 break-all leading-relaxed bg-slate-50 p-2 rounded border border-slate-100"></p>
+                    </div>
+
+                    <div class="flex gap-3 mt-6">
+                        <button onclick="closeCheckoutModal()" class="flex-1 bg-white border border-teal-200 text-teal-700 hover:bg-teal-50 hover:border-teal-400 font-bold py-3 rounded-xl transition text-sm">
+                            Nueva Venta
+                        </button>
+                        <a id="invoice-link" href="#" target="_blank" rel="noopener" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-teal-600/30 flex items-center justify-center gap-2 text-sm">
+                            <i class="fa-solid fa-file-pdf"></i> Ver factura
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CART LOGIC ---
+        let cart = [];
+        let catalog = {};
+        let pollTimer = null;
+        let currentVentaId = null;
+        // Servido por el backend (/tienda) usa el mismo origen; abierto como archivo, apunta a localhost.
+        const API = location.protocol === 'file:' ? 'http://localhost:8000' : '';
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        async function apiFetch(path, options) {
+            const res = await fetch(API + path, options);
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                let detail = body.detail;
+                if (Array.isArray(detail)) detail = detail.map(d => d.msg).join('; ');
+                throw new Error(detail || `Error ${res.status}`);
+            }
+            return body;
+        }
+
+        async function loadCatalog() {
+            const grid = document.getElementById('product-grid');
+            try {
+                const productos = await apiFetch('/api/productos');
+                if (!productos.length) {
+                    grid.innerHTML = '<p class="col-span-full text-center text-sm text-slate-500 py-10">No hay productos disponibles.</p>';
+                    return;
+                }
+                catalog = {};
+                grid.innerHTML = productos.map(p => {
+                    catalog[p.sku] = p;
+                    const agotado = p.stock <= 0;
+                    return `
+                    <div class="bg-white border border-orange-100 rounded-3xl p-5 hover:shadow-xl hover:border-teal-200 transition duration-300 flex flex-col justify-between group">
+                        <div>
+                            <div class="relative bg-orange-50/50 rounded-2xl p-4 mb-4 flex items-center justify-center h-48 overflow-hidden group-hover:bg-teal-50 transition">
+                                <span class="absolute top-3 left-3 bg-teal-100 text-teal-800 text-[10px] font-extrabold px-2.5 py-1 rounded-md tracking-wide">${escapeHtml(p.sku)}</span>
+                                <i class="fa-solid fa-pills text-7xl text-slate-200 group-hover:text-teal-400 group-hover:-translate-y-2 transition duration-300"></i>
+                            </div>
+                            <h4 class="font-extrabold text-slate-900 text-base leading-tight group-hover:text-teal-600 transition">${escapeHtml(p.nombre)}</h4>
+                            <p class="text-xs mt-1.5 ${agotado ? 'text-rose-600 font-bold' : 'text-slate-500'}">${agotado ? 'Agotado' : p.stock + ' disponibles'}</p>
+                        </div>
+                        <div class="mt-5 pt-4 border-t border-orange-50 flex items-center justify-between">
+                            <span class="text-lg font-extrabold text-slate-900">${formatCurrency(p.precio_cop)}</span>
+                            <button ${agotado ? 'disabled' : ''} onclick="addToCart('${escapeHtml(p.sku)}')" class="bg-orange-500 hover:bg-orange-600 disabled:bg-slate-300 text-white w-10 h-10 rounded-xl font-bold transition flex items-center justify-center shadow-lg shadow-orange-500/30 transform active:scale-95">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                grid.innerHTML = `<p class="col-span-full text-center text-sm text-rose-600 py-10">No se pudo cargar el catálogo: ${escapeHtml(e.message)}</p>`;
+            }
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('es-CO', {
+                style: 'currency',
+                currency: 'COP',
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function toggleCartDrawer() {
+            const drawer = document.getElementById('cart-drawer');
+            const content = document.getElementById('cart-drawer-content');
+            
+            if (drawer.classList.contains('opacity-0')) {
+                // Open
+                drawer.classList.remove('opacity-0', 'pointer-events-none');
+                content.classList.remove('translate-x-full');
+            } else {
+                // Close
+                drawer.classList.add('opacity-0', 'pointer-events-none');
+                content.classList.add('translate-x-full');
+            }
+        }
+
+        function addToCart(sku) {
+            const p = catalog[sku];
+            if (!p) return;
+            const existingItem = cart.find(item => item.sku === sku);
+            if ((existingItem ? existingItem.quantity : 0) + 1 > p.stock) {
+                showToast("Stock insuficiente", `Solo hay ${p.stock} unidades de ${p.nombre}.`);
+                return;
+            }
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({ sku, name: p.nombre, price: Number(p.precio_cop), quantity: 1 });
+            }
+            
+            updateCartUI();
+            showToast("Producto Agregado", `${p.nombre} se añadió a tu carrito.`);
+            
+            // Pop the cart button for visual feedback
+            const btn = document.getElementById('cart-badge').parentElement;
+            btn.classList.add('scale-110', 'border-orange-400');
+            setTimeout(() => btn.classList.remove('scale-110', 'border-orange-400'), 200);
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const list = document.getElementById('cart-items-list');
+            const emptyState = document.getElementById('cart-empty');
+            const badge = document.getElementById('cart-badge');
+            
+            // Update Badge
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            badge.innerText = totalItems;
+
+            if (cart.length === 0) {
+                list.innerHTML = '';
+                list.appendChild(emptyState);
+                emptyState.style.display = 'block';
+                document.getElementById('cart-subtotal').innerText = '$0';
+                document.getElementById('cart-total').innerText = '$0';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            list.innerHTML = '';
+            let subtotal = 0;
+
+            cart.forEach((item, index) => {
+                subtotal += item.price * item.quantity;
+                const itemHTML = `
+                    <div class="flex items-center justify-between p-4 bg-orange-50/30 rounded-2xl border border-orange-100">
+                        <div class="flex-1 pr-3">
+                            <p class="font-extrabold text-sm text-teal-900 line-clamp-1">${escapeHtml(item.name)}</p>
+                            <div class="flex items-center gap-3 mt-1.5">
+                                <span class="text-xs font-semibold text-teal-700">${formatCurrency(item.price)}</span>
+                                <span class="text-[10px] text-slate-400">x ${item.quantity} u.</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="font-extrabold text-sm text-teal-900">${formatCurrency(item.price * item.quantity)}</span>
+                            <button onclick="removeFromCart(${index})" class="text-slate-300 hover:text-orange-500 transition">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                list.innerHTML += itemHTML;
+            });
+
+            document.getElementById('cart-subtotal').innerText = formatCurrency(subtotal);
+            
+            document.getElementById('cart-total').innerText = formatCurrency(subtotal);
+        }
+
+        function checkout() {
+            if (cart.length === 0) {
+                showToast("Carrito Vacío", "Agrega productos antes de continuar.");
+                return;
+            }
+            toggleCartDrawer();
+            openCheckoutModal();
+        }
+
+        // --- CHECKOUT POS MODAL LOGIC (Integración Mock Arquitectura) ---
+        const modal = document.getElementById('checkout-modal');
+        const modalContent = document.getElementById('checkout-modal-content');
+
+        function openCheckoutModal() {
+            // Reset to step 1
+            showStep(1);
+            document.getElementById('client-id').value = '';
+            document.getElementById('client-name').value = '';
+            document.getElementById('client-email').value = '';
+
+            // Show modal with animation
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modalContent.classList.remove('scale-95');
+            modalContent.classList.add('scale-100');
+        }
+
+        function closeCheckoutModal() {
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            
+            stopPolling();
+            // Si cerramos desde la pantalla de éxito, limpiamos el carrito
+            if(!document.getElementById('step-4').classList.contains('hidden')){
+                cart = [];
+                updateCartUI();
+                loadCatalog();
+            }
+        }
+
+        function showStep(stepNumber) {
+            for (let i = 1; i <= 4; i++) {
+                const step = document.getElementById(`step-${i}`);
+                step.classList.add('hidden');
+                step.classList.remove('block', 'flex');
+            }
+            const targetStep = document.getElementById(`step-${stepNumber}`);
+            if(stepNumber === 3){
+                targetStep.classList.remove('hidden');
+                targetStep.classList.add('flex');
+            } else {
+                targetStep.classList.remove('hidden');
+                targetStep.classList.add('block');
+            }
+        }
+
+        async function processStep1(event) {
+            const nit = document.getElementById('client-id').value.trim();
+            const nombre = document.getElementById('client-name').value.trim();
+            const email = document.getElementById('client-email').value.trim();
+            if (!nit || !nombre || !email) {
+                showToast("Datos requeridos", "Ingresa NIT, nombre y correo del cliente.");
+                return;
+            }
+
+            const btn = event.currentTarget;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Conectando Factus...';
+            btn.disabled = true;
+
+            try {
+                const venta = await apiFetch('/api/ventas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nit,
+                        razon_social: nombre,
+                        email,
+                        items: cart.map(i => ({ sku: i.sku, cantidad: i.quantity })),
+                    }),
+                });
+                currentVentaId = venta.id;
+                document.getElementById('qr-img').src = venta.qr_code || '';
+                document.getElementById('pay-ref').innerText = venta.reference_code;
+                document.getElementById('pay-total').innerText = formatCurrency(venta.total);
+                showStep(2);
+                startPolling();
+            } catch (e) {
+                showToast("No se pudo generar el cobro", e.message);
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        }
+
+        function stopPolling() {
+            if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+        }
+
+        function cancelPayment() {
+            stopPolling();
+            closeCheckoutModal();
+        }
+
+        // Consulta el estado cada 3 s: el backend cambia a PAGADA/FACTURADA al recibir el webhook.
+        function startPolling() {
+            stopPolling();
+            const ventaId = currentVentaId;
+            const startedAt = Date.now();
+            pollTimer = setInterval(async () => {
+                if (ventaId !== currentVentaId) return stopPolling();
+                if (Date.now() - startedAt > 10 * 60 * 1000) {
+                    stopPolling();
+                    showToast("Tiempo agotado", "El cobro expiró. Genera uno nuevo.");
+                    return;
+                }
+                try {
+                    const v = await apiFetch(`/api/ventas/${ventaId}`);
+                    handleEstado(v);
+                } catch (e) { /* reintenta en el siguiente ciclo */ }
+            }, 3000);
+        }
+
+        function handleEstado(v) {
+            const msg = document.getElementById('step3-msg');
+            switch (v.estado) {
+                case 'PAGADA':
+                    msg.innerText = 'Generando Factura Electrónica DIAN...';
+                    showStep(3);
+                    break;
+                case 'FACTURADA':
+                    stopPolling();
+                    document.getElementById('invoice-number').innerText = v.factura_numero || '—';
+                    document.getElementById('invoice-cufe').innerText = v.cufe || '—';
+                    const link = document.getElementById('invoice-link');
+                    if (v.factura_url && /^https?:\/\//.test(v.factura_url)) {
+                        link.href = v.factura_url;
+                        link.classList.remove('hidden');
+                    } else {
+                        link.classList.add('hidden');
+                    }
+                    showStep(4);
+                    break;
+                case 'ERROR_FACTURACION':
+                    stopPolling();
+                    msg.innerText = 'Pago recibido, pero la factura falló. Un administrador debe reintentarla.';
+                    showStep(3);
+                    break;
+                case 'SIN_STOCK':
+                    stopPolling();
+                    showToast("Sin stock", "El pago llegó sin inventario disponible; requiere devolución manual.");
+                    showStep(1);
+                    break;
+                case 'ERROR_PAGO':
+                    stopPolling();
+                    showToast("Error de pago", "No se pudo procesar el cobro.");
+                    showStep(1);
+                    break;
+            }
+        }
+
+        // --- DRAG & DROP LOGIC ---
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-active');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-active');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-active');
+            if (e.dataTransfer.files.length) {
+                handleFileUpload(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
+
+        function handleFileUpload(file) {
+            dropZone.innerHTML = `
+                <i class="fa-solid fa-file-circle-check text-4xl text-teal-600 mb-2"></i>
+                <p class="text-sm font-bold text-teal-900">${file.name}</p>
+                <p class="text-[10px] text-teal-700 font-semibold mt-1">Fórmula adjuntada exitosamente</p>
+            `;
+            showToast("Archivo Cargado", `El archivo ${file.name} ha sido recibido para revisión.`);
+        }
+
+        // --- TOAST NOTIFICATION ---
+        function showToast(title, msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-title').innerText = title;
+            document.getElementById('toast-msg').innerText = msg;
+
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-24', 'opacity-0');
+            }, 3500);
+        }
+
+        // Ensure state is hidden on load
+        document.getElementById('cart-empty').style.display = 'block';
+        loadCatalog();
+    </script>
+</body>
+</html>
